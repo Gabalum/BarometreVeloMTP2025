@@ -13,61 +13,71 @@ from dash import html, dcc
 
 
 questions = dict()
-with open('./questions.json','r') as fd:
+with open('./questions.json', 'r') as fd:
     questions = json.load(fd)
 
-color = {'A+':'rgb(43,121,16)',
-         'A':'rgb(75,152,51)',
-         'B':'rgb(121,181,45)',
-         'C':'rgb(200,210,39)',
-         'D':'rgb(254,239,48)',
-         'E':'rgb(252,203,44)',
-         'F':'rgb(243,153,57)',
-         'G':'rgb(228,55,35)'}
+color = {'A+': 'rgb(43,121,16)',
+         'A': 'rgb(75,152,51)',
+         'B': 'rgb(121,181,45)',
+         'C': 'rgb(200,210,39)',
+         'D': 'rgb(254,239,48)',
+         'E': 'rgb(252,203,44)',
+         'F': 'rgb(243,153,57)',
+         'G': 'rgb(228,55,35)'}
 
 
-def categorie_info(data,categorie) : 
-    note = round(data[categorie].mean(),2)
-    class_name = 'A+' if note>4.6 else 'A' if note > 4.3 else 'B' if note > 3.9 else 'C' if note > 3.5 else 'D' if note > 3.1 else 'E' if note > 2.7 else 'F' if note > 2.3 else 'G'
-    badge = dbc.Badge([class_name+' : '+str(note)],color=color[class_name])
-    histogramme = px.histogram(data[categorie],range_x=[0.5,6.5],title='Répartition des notes des répondants pour la catégorie')
-    return badge,histogramme
-    
-def question_info(data,question) : 
+def categorie_info(data, categorie):
+    note = round(data[categorie].mean(), 2)
+    class_name = 'A+' if note>4.6 else 'A' if note > 4.3 else \
+        'B' if note > 3.9 else 'C' if note > 3.5 else 'D' if note > 3.1 else \
+        'E' if note > 2.7 else 'F' if note > 2.3 else 'G'
+    badge = dbc.Badge([class_name+' : '+str(note)], color=color[class_name])
+    histogramme = px.histogram(data[categorie],
+                               range_x=[0.5, 6.5],
+                               title='Répartition des notes des répondants \
+                               pour la catégorie')
+    return badge, histogramme
+
+
+def badge(data, colonne):
+    m = round(data[colonne].mean(), 2)
+    class_name = 'A+' if m>4.6 else 'A' if m > 4.3 else \
+        'B' if m > 3.9 else 'C' if m > 3.5 else 'D' if m > 3.1 else \
+        'E' if m > 2.7 else 'F' if m > 2.3 else 'G'
+    return dbc.Badge([class_name+' : '+str(m)], color=color[class_name])
+
+
+def question_info(data, question) : 
     my_question = questions[question]
     q = my_question['question']
-    labels = [k+ '-' +v if v else k for k,v in my_question['answer'].items()]
-    moyenne = round(data[question].astype(float).mean(),2)
-    
-    class_name = 'A+' if moyenne>4.6 else 'A' if moyenne > 4.3 else 'B' if moyenne > 3.9 else 'C' if moyenne > 3.5 else 'D' if moyenne > 3.1 else 'E' if moyenne > 2.7 else 'F' if moyenne > 2.3 else 'G'
-           
-    badge = dbc.Badge([class_name+' : '+str(moyenne)],color=color[class_name])
-    
+    labels = [k + '-' + v if v else k for k, v in my_question['answer'].items()]
+    moyenne = round(data[question].astype(float).mean(), 2)
+    class_name = 'A+' if moyenne>4.6 else 'A' if moyenne > 4.3 else \
+        'B' if moyenne > 3.9 else 'C' if moyenne > 3.5 else \
+        'D' if moyenne > 3.1 else 'E' if moyenne > 2.7 else \
+        'F' if moyenne > 2.3 else 'G'
+    badge = dbc.Badge([class_name+' : '+str(moyenne)], color=color[class_name])
     h = data[question].value_counts()
     bins = [int(i) for i in my_question['answer'].keys()]
-    
     for i in bins:
-        if not i in h:
-            h[i]=0
-    
+        if i not in h:
+            h[i] = 0
     count = [h[i] for i in bins]
-    histogram = px.bar(x=labels, y = count, title=q,labels={'x':'','y':''})
-     
-    return badge,histogram
+    histogram = px.bar(x=labels, y=count, title=q, labels={'x': '', 'y': ''})
+    return badge, histogram
+
 
 def question_histogramme(data,question):
     my_question = questions[question]
     q = my_question['question']
-    labels = [v if v else k for k,v in my_question['answer'].items()]
+    labels = [v if v else k for k, v in my_question['answer'].items()]
     h = data[question].value_counts()
     bins = [int(i) for i in my_question['answer'].keys()]
-    
     for i in bins:
-        if not i in h:
-            h[i]=0
-    
+        if i not in h:
+            h[i] = 0
     count = [h[i] for i in bins]
-    histogram = px.bar(x=labels, y = count, title=q,labels={'x':'','y':''})
+    histogram = px.bar(x=labels, y=count, title=q, labels={'x': '', 'y': ''})
     return histogram
 
 def question_multiple_histogramme(data,question):
@@ -85,9 +95,7 @@ def question_multiple_histogramme(data,question):
     return histogram
 
 def commentaires(data):
-    
     d = data['q35'].copy()
-    
     return [dbc.ListGroupItem(text) for text in d.dropna()]
 
 def panel_content(categorie,qlist):
