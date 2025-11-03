@@ -10,8 +10,8 @@ from dash import Dash, html, dcc, callback, Output, Input, State
 import pandas as pd
 from graph_functions import question_info, question_histogramme
 from graph_functions import question_multiple_histogramme, categorie_info
-from graph_functions import panel_content, commentaires, badge, note
-from graph_functions import progress
+from graph_functions import panel_content, commentaires, note
+from graph_functions import progress, evolution
 import dash_bootstrap_components as dbc
 
 # Chargement des données et conversion des notes en entier
@@ -196,6 +196,8 @@ synthese_pane = dbc.Container(
         html.Span(id='efforts'),
         html.H2('Stationnement et services'),
         html.Span(id='stationnement'),
+        html.H2('Evolution depuis 2 ans'),
+        html.Span(id='evolution'),
         html.H2('Nombre de réponses'),
         dbc.Table(html.Tbody([row1, row2, row3]))
         ])
@@ -272,7 +274,7 @@ sociologie_pane = dbc.Card(dbc.CardBody(dbc.Row([
     ])), className="mt-3")
 
 commentaires_pane = dbc.Container(html.Div([
-    html.H2("Commentaires en texte libre" ,className="display-3"),
+    html.H2("Commentaires en texte libre", className="display-3"),
     html.Hr(className="my-2"),
     dbc.ListGroup(id='commentaires')],
     className="h-100 p-5 text-white bg-primary rounded-3"))
@@ -317,6 +319,7 @@ io = [
       Output('confort', 'children'),
       Output('efforts', 'children'),
       Output('stationnement', 'children'),
+      Output('evolution', 'children'),
       Output('nb_rep', 'children'),
       Output('nb_val_rep', 'children'),
       Output('nb_rep_cyclist', 'children')]
@@ -418,6 +421,7 @@ def update(commune, genre, expertise, pratique, age):
                     progress(note(data, 'confort')),
                     progress(note(data, 'efforts')),
                     progress(note(data, 'services')),
+                    evolution(data),
                     nb_rep,
                     nb_val_rep,
                     nb_rep_cyclist]

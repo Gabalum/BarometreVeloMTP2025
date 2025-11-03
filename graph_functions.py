@@ -135,6 +135,34 @@ def progress(note):
     return progress
 
 
+def evolution(data):
+    m = data['q7'].mean()-3
+    if m > 0:
+        content = [
+            dbc.Progress(value=50, color='secondary', bar=True),
+            dbc.Progress(value=m/2*50, color="success", bar=True),
+            dbc.Progress(value=50-m/2*50, color='secondary', bar=True)
+            ]
+    else:
+        content = [
+            dbc.Progress(value=50+m/2*50, color='secondary', bar=True),
+            dbc.Progress(value=-m/2*50, color="danger", bar=True),
+            dbc.Progress(value=50, color='secondary', bar=True)
+            ]
+    progress = dbc.Progress(content,
+                            style={'height': '50px'})
+    table_content = [html.Tr([html.Td(progress, colSpan=5)]),
+                     html.Tr([
+                         html.Td("S'est beaucoup dégradée"),
+                         html.Td("S'est un peu dégradée"),
+                         html.Td("Est restée stable"),
+                         html.Td("S'est un peu améliorée"),
+                         html.Td("S'est beaucoup améliorée")
+                         ], style={'text-align': "center"})]
+    table = dbc.Table(table_content)
+    return table
+
+
 def categorie_info(data, categorie):
     """
     Revoie des informations (badge et histogramme) pour une catégorie.
