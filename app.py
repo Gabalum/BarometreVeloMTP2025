@@ -10,7 +10,8 @@ from dash import Dash, html, dcc, callback, Output, Input, State
 import pandas as pd
 from graph_functions import question_info, question_histogramme
 from graph_functions import question_multiple_histogramme, categorie_info
-from graph_functions import panel_content, commentaires, badge
+from graph_functions import panel_content, commentaires, badge, note
+from graph_functions import progress
 import dash_bootstrap_components as dbc
 
 # Chargement des données et conversion des notes en entier
@@ -31,21 +32,21 @@ communes = communes.rename(columns={'COM': 'insee', 'LIBELLE': 'commune'})
 df = df.merge(communes, how='inner', on='insee')
 
 # Panneau de filtrage des données
-villes = sorted(list(df['commune'].unique()))
+villes = ['Toutes les communes']+sorted(list(df['commune'].unique()))
 selection_pane = dbc.Offcanvas([
     dbc.Row([
         dbc.Col([
             html.Fieldset([
                 html.Legend('Genre'),
-                dcc.Checklist([
+                dbc.Checklist([
                     {'label': 'Féminin', 'value': 1},
                     {'label': 'Masculin', 'value': 2},
                     {'label': 'Ne se prononce pas', 'value': 3}],
-                    value=[1, 2, 3], id='genre_selection')
+                    value=[1, 2, 3], id='genre_selection', switch=True)
                 ]),
             html.Fieldset([
                 html.Legend("Niveau d'expertise déclaré"),
-                dcc.Checklist([
+                dbc.Checklist([
                     {'label': '1 - Débutant·e', 'value': 1},
                     {'label': '2', 'value': 2},
                     {'label': '3', 'value': 3},
@@ -53,23 +54,23 @@ selection_pane = dbc.Offcanvas([
                     {'label': '5', 'value': 5},
                     {'label': '6 - Expert·e', 'value': 6}],
                     value=[1, 2, 3, 4, 5, 6],
-                    id='expertise_selection'
+                    id='expertise_selection', switch=True
                     )
                 ]),
             html.Fieldset([
                 html.Legend("Pratiquant"),
-                dcc.Checklist([
+                dbc.Checklist([
                     {'label': 'Cycliste', 'value': 1},
                     {'label': 'Non cycliste', 'value': 2}],
                     value=[1, 2],
-                    id='pratiquant_selection'
+                    id='pratiquant_selection', switch=True
                     )
                 ])
             ]),
         dbc.Col([
             html.Fieldset([
                 html.Legend("Tranche d'âge"),
-                dcc.Checklist([
+                dbc.Checklist([
                     {'label': 'Moins de 11 ans', 'value': 0},
                     {'label': '11 - 14 ans', 'value': 1},
                     {'label': '15 - 18 ans', 'value': 2},
@@ -82,7 +83,7 @@ selection_pane = dbc.Offcanvas([
                     {'label': 'Plus de 75 ans', 'value': 9},
                     {'label': 'Ne se prononce pas', 'value': 10}],
                     value=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                    id='age_selection')
+                    id='age_selection', switch=True)
                 ])
             ])
         ])
@@ -125,6 +126,8 @@ presentation_pane = html.Div(dbc.Container([
                          "du vélo des répondants"]),
                 html.Li(["d'analyser le rapport des répondants aux autres ",
                          "modes de déplacements"]),
+                html.Li(["de consulter les commentaires textuels déposés ",
+                         "sur les contributions individuelles"])
                 ])
             ]),
     html.P(["Ce site exploite les données des contributions individuelles ",
@@ -169,21 +172,32 @@ presentation_pane = html.Div(dbc.Container([
     ]))
 
 # Panneau de synthèse (A enrichir)
+row1 = html.Tr([html.Td("Nombre total de réponses"),
+                html.Td(html.A(id='nb_rep'))])
+row2 = html.Tr([html.Td("Nombre de réponses valides"),
+                html.Td(html.A(id='nb_val_rep'))])
+row3 = html.Tr([html.Td("Nombre de réponses de cyclistes"),
+                html.Td(html.A(id='nb_rep_cyclist'))])
+
+
 synthese_pane = dbc.Container(
     html.Div([
         html.H1(["Synthèse de l'évaluation donnée par le baromètre vélo pour ",
                  html.Span(id='commune')]),
-        html.H2(['Evaluation globale : ', html.Span('', id='note')]),
-        html.H3(['Ressenti général : ', html.Span('', id='ressenti')]),
-        html.H3(['Sécurité : ', html.Span('', id='securité')]),
-        html.H3(['Confort : ', html.Span('', id='confort')]),
-        html.H3(['Efforts de la commune : ', html.Span('', id='efforts')]),
-        html.H3(['Stationnement et services : ',
-                 html.Span(id='stationnement')]),
-        html.H4(['Nombre de réponses : ', html.A(id='nb_rep')]),
-        html.H4(['Nombre de réponses valides : ', html.A(id='nb_val_rep')]),
-        html.H4(['Nombre de réponses de cyclistes : ',
-                 html.A(id='nb_rep_cyclist')]),
+        html.H2('Evaluation globale'),
+        html.Span(id='note'),
+        html.H2('Ressenti général'),
+        html.Span(id='ressenti'),
+        html.H2('Sécurité'),
+        html.Span(id='securité'),
+        html.H2('Confort'),
+        html.Span(id='confort'),
+        html.H2('Efforts de la commune'),
+        html.Span(id='efforts'),
+        html.H2('Stationnement et services'),
+        html.Span(id='stationnement'),
+        html.H2('Nombre de réponses'),
+        dbc.Table(html.Tbody([row1, row2, row3]))
         ])
     )
 
@@ -208,65 +222,90 @@ stationnement_pane = panel_content('services',
 
 # Panneaux complémentaires
 
-sociologie_pane = dbc.Container(dbc.Row([
-    dbc.Col([
-        html.H3('Répondant·e·s cyclistes'),
+sociologie_pane = dbc.Card(dbc.CardBody(dbc.Row([
+    dbc.Col(html.Div([
+        html.H2('Répondant·e·s cyclistes'),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='age_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='genre_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='expertise_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='permis_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='motorise_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='TEC_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='velo_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='motif_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='association_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='stationnement_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='vol_cyclistes')),
-        ]),
-    dbc.Col([
-        html.H3('Répondant·e·s non cyclistes'),
+        ], className="h-100 p-5 text-white bg-primary rounded-3")),
+    dbc.Col(html.Div([
+        html.H2('Répondant·e·s non cyclistes'),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='age_non_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='genre_non_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='expertise_non_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='permis_non_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='motorise_non_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='TEC_non_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='mobilite_non_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='motif_non_cyclistes')),
+        html.Hr(className="my-2"),
         html.Div(dcc.Graph(id='velo_non_cyclistes')),
-        ])
-    ]))
+        ], className="h-100 p-5 text-white bg-primary rounded-3"))
+    ])), className="mt-3")
 
-commentaires_pane = dbc.Container(dbc.ListGroup(id='commentaires'))
+commentaires_pane = dbc.Container(html.Div([
+    html.H2("Commentaires en texte libre" ,className="display-3"),
+    html.Hr(className="my-2"),
+    dbc.ListGroup(id='commentaires')],
+    className="h-100 p-5 text-white bg-primary rounded-3"))
 
 violence_pane = dbc.Container()
 
 # Initialize the app
-app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = Dash(external_stylesheets=[dbc.themes.DARKLY])
 server = app.server
 app.title = 'Baromètre Vélo 2025 Métropole Rouen Normandie'
 
 # App layout
+options = [{'label': v, 'value': v} for v in villes]
 app.layout = html.Div([
-    html.Div(dbc.Row([dbc.Col(dcc.Dropdown(villes,
-                                           'Rouen',
-                                           id='ville_selection')),
-                     dbc.Col(dbc.Button('Filtrer',
-                                        id='open-offcanvas',
-                                        n_clicks=0))])),
+    dbc.Row([dbc.Col(dbc.Select(options=options,
+                                id='ville_selection',
+                                value='Toutes les communes')),
+             dbc.Col(dbc.Button('Filtrer',
+                                id='open-offcanvas',
+                                n_clicks=0))]),
     html.Div(selection_pane),
-    dcc.Tabs([
-        dcc.Tab(label="Présentation", children=presentation_pane),
-        dcc.Tab(label='Synthèse', children=synthese_pane),
-        dcc.Tab(label='Ressenti général', children=ressenti_pane),
-        dcc.Tab(label='Sécurité', children=securite_pane),
-        dcc.Tab(label='Confort', children=confort_pane),
-        dcc.Tab(label='Efforts de la commune', children=effort_pane),
-        dcc.Tab(label='Stationnements et services',
+    dbc.Tabs([
+        dbc.Tab(label="Présentation", children=presentation_pane),
+        dbc.Tab(label='Synthèse', children=synthese_pane),
+        dbc.Tab(label='Ressenti général', children=ressenti_pane),
+        dbc.Tab(label='Sécurité', children=securite_pane),
+        dbc.Tab(label='Confort', children=confort_pane),
+        dbc.Tab(label='Efforts de la commune', children=effort_pane),
+        dbc.Tab(label='Stationnements et services',
                 children=stationnement_pane),
-        dcc.Tab(label='Commentaires', children=commentaires_pane),
-        dcc.Tab(label='Sociologie et pratique', children=sociologie_pane),
-        dcc.Tab(label='Violence motorisée', children=violence_pane)
+        dbc.Tab(label='Commentaires', children=commentaires_pane),
+        dbc.Tab(label='Sociologie et pratique', children=sociologie_pane),
+        dbc.Tab(label='Violence motorisée', children=violence_pane)
     ])
 ])
 
@@ -336,7 +375,7 @@ def update(commune, genre, expertise, pratique, age):
     commune : str
         Châine de caractère représentant la commune.
     genre : list
-        Liste d'entiers représentant les genres des répondants dont les 
+        Liste d'entiers représentant les genres des répondants dont les
         réponses sont analysées.
     expertise : list
         Liste d'entiers représentant les niveaux d'expertise des répondants
@@ -353,14 +392,19 @@ def update(commune, genre, expertise, pratique, age):
         Tuple composé des différentes valeurs pour les champs variables.
 
     """
-    commune_selection = df['commune'] == commune
     genre_selection = df['q47'].isin(genre) | df['q56'].isin(genre)
     expertise_selection = df['q37'].isin(expertise) | df['q52'].isin(expertise)
     age_selection = df['q48'].isin(age) | df['q57'].isin(age)
     pratique_selection = ((df['q6'] <= 4) & (1 in pratique)) \
         | ((df['q6'] == 5) & (2 in pratique))
-    selection = commune_selection & genre_selection & expertise_selection \
-        & age_selection & pratique_selection
+
+    if commune == 'Toutes les communes':
+        selection = genre_selection & expertise_selection \
+            & age_selection & pratique_selection
+    else:
+        commune_selection = df['commune'] == commune
+        selection = commune_selection & genre_selection & expertise_selection \
+            & age_selection & pratique_selection
     data = df.loc[selection]
     nb_rep = len(data)
     data = data.loc[data['commentaires'].isna()]
@@ -368,12 +412,12 @@ def update(commune, genre, expertise, pratique, age):
     cyclist_df = data.loc[df['q6'] != 5]
     nb_rep_cyclist = len(cyclist_df)
     return_value = [commune,
-                    badge(data, 'score'),
-                    badge(data, 'ressenti'),
-                    badge(data, 'securite'),
-                    badge(data, 'confort'),
-                    badge(data, 'efforts'),
-                    badge(data, 'services'),
+                    progress(note(data, 'score')),
+                    progress(note(data, 'ressenti')),
+                    progress(note(data, 'securite')),
+                    progress(note(data, 'confort')),
+                    progress(note(data, 'efforts')),
+                    progress(note(data, 'services')),
                     nb_rep,
                     nb_val_rep,
                     nb_rep_cyclist]

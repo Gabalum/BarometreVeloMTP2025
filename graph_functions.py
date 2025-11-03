@@ -24,10 +24,120 @@ color = {'A+': 'rgb(43,121,16)',
          'F': 'rgb(243,153,57)',
          'G': 'rgb(228,55,35)'}
 
+label = {'ressenti': 'Ressenti général',
+         'securite': 'Sécurité',
+         'confort': 'Confort',
+         'efforts': 'Efforts de la commune',
+         'services': 'Stationnements et services'
+         }
+
+
+def note(data, question):
+    """
+    Renvoie la moyenne à la question.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Données à la base du calcul.
+    question : str
+        Nom de la question.
+
+    Returns
+    -------
+    float
+        Moyenne de la question sur les données.
+
+    """
+    return round(data[question].mean(), 2)
+
+
+def classe_couleur(note):
+    """
+    Renvoie la classe et la couleur associée pour une note.
+
+    Parameters
+    ----------
+    note : float
+        Note.
+
+    Returns
+    -------
+    classe : str
+        Chaine de caractères définissante la classe de la note.
+    couleur : str
+        Chaine de caractères définissant la couleur de la note.
+
+    """
+    if note > 4.6:
+        classe = 'A+'
+    elif note > 4.3:
+        classe = 'A'
+    elif note > 3.9:
+        classe = 'B'
+    elif note > 3.5:
+        classe = 'C'
+    elif note > 3.1:
+        classe = 'D'
+    elif note > 2.7:
+        classe = 'E'
+    elif note > 2.3:
+        classe = 'F'
+    else:
+        classe = 'G'
+    couleur = color[classe]
+    return classe, couleur
+
+
+def badge(note):
+    """
+    Revoie un badge avec la note et la couleur.
+
+    Parameters
+    ----------
+    note : float
+        Valeur pour laquelle le badge est créé.
+
+    Returns
+    -------
+    badge : dash_bootstrap_components.Badge
+        Badge contenant la note moyenne de la colonne et dont la couleur est
+        adaptée.
+
+    """
+    classe, couleur = classe_couleur(note)
+    badge = dbc.Badge(classe+f' : {note:.2f}', color=couleur)
+    return badge
+
+
+def progress(note):
+    """
+    Renvoie une barre de progression représentant la note.
+
+    Parameters
+    ----------
+    note : float
+        Note à représenter.
+
+    Returns
+    -------
+    progress : ash_bootstrap_components.Progress
+        Barre de progression représentant la note
+
+    """
+    classe, couleur = classe_couleur(note)
+    progress = dbc.Progress(label=classe+f' : {note:.2f}',
+                            value=int(note/6*100),
+                            color=couleur,
+                            style={"height": "50px",
+                                   "font-size": "30px",
+                                   "text-shadow": "3px 3px #558abb"})
+    return progress
+
 
 def categorie_info(data, categorie):
     """
-    Revoie des informations (badge et histogramme) pour une catégorie
+    Revoie des informations (badge et histogramme) pour une catégorie.
 
     Parameters
     ----------
@@ -45,46 +155,17 @@ def categorie_info(data, categorie):
 
     """
     note = round(data[categorie].mean(), 2)
-    class_name = 'A+' if note>4.6 else 'A' if note > 4.3 else \
-        'B' if note > 3.9 else 'C' if note > 3.5 else 'D' if note > 3.1 else \
-        'E' if note > 2.7 else 'F' if note > 2.3 else 'G'
-    badge = dbc.Badge([class_name+' : '+str(note)], color=color[class_name])
+    b = progress(note)
     histogramme = px.histogram(data[categorie],
                                range_x=[0.5, 6.5],
                                title='Répartition des notes des répondants \
                                pour la catégorie')
-    return badge, histogramme
-
-
-def badge(data, colonne):
-    """
-    Revoie un badge avec la note et la couleur.
-
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        Données à partir desquelles sont calculées le badge.
-    colonne : str
-        Nom de la colonne à partir de laquelle sera calculée le badge.
-
-    Returns
-    -------
-    dash_bootstrap_components.Badge
-        Badge contenant la note moyenne de la colonne et dont la couleur est
-        adaptée.
-
-    """
-    m = round(data[colonne].mean(), 2)
-    class_name = 'A+' if m>4.6 else 'A' if m > 4.3 else \
-        'B' if m > 3.9 else 'C' if m > 3.5 else 'D' if m > 3.1 else \
-        'E' if m > 2.7 else 'F' if m > 2.3 else 'G'
-    return dbc.Badge([class_name+' : '+str(m)], color=color[class_name])
+    return b, histogramme
 
 
 def question_info(data, question):
     """
-    Renvoie les informations (Badge et histogramme) concernant une question du
-    baromètre
+    Renvoie les informations concernant une question du baromètre.
 
     Parameters
     ----------
@@ -106,12 +187,8 @@ def question_info(data, question):
     q = my_question['question']
     labels = [k + '-' + v if v else k
               for k, v in my_question['answer'].items()]
-    moyenne = round(data[question].astype(float).mean(), 2)
-    class_name = 'A+' if moyenne>4.6 else 'A' if moyenne > 4.3 else \
-        'B' if moyenne > 3.9 else 'C' if moyenne > 3.5 else \
-        'D' if moyenne > 3.1 else 'E' if moyenne > 2.7 else \
-        'F' if moyenne > 2.3 else 'G'
-    badge = dbc.Badge([class_name+' : '+str(moyenne)], color=color[class_name])
+    note = round(data[question].astype(float).mean(), 2)
+    b = progress(note)
     h = data[question].value_counts()
     bins = [int(i) for i in my_question['answer'].keys()]
     for i in bins:
@@ -119,7 +196,7 @@ def question_info(data, question):
             h[i] = 0
     count = [h[i] for i in bins]
     histogram = px.bar(x=labels, y=count, title=q, labels={'x': '', 'y': ''})
-    return badge, histogram
+    return b, histogram
 
 
 def question_histogramme(data, question):
@@ -154,8 +231,7 @@ def question_histogramme(data, question):
 
 def question_multiple_histogramme(data, question):
     """
-    Renvoi l'histogramme de répartition des choix sur une question à choix
-    multiple.
+    Renvoie l'histogramme des choix d'une question à choix multiples.
 
     Parameters
     ----------
@@ -168,7 +244,7 @@ def question_multiple_histogramme(data, question):
     -------
     histogram : plotly.graph_objects.Figure
         Histogramme de répartition des réponses.
-
+className="h-100 p-5 bg-light text-dark border rounded-3"
     """
     my_question = questions[question]
     q = my_question['question']
@@ -189,12 +265,12 @@ def question_multiple_histogramme(data, question):
 
 def commentaires(data):
     """
-    Renvoie la liste des commentaires textuels
+    Renvoie la liste des commentaires textuels.
 
     Parameters
     ----------
     data : pandas.DataFrame
-        DataFrame des données desquelles ont souhaite la liste des 
+        DataFrame des données desquelles ont souhaite la liste des
         commentaires.
 
     Returns
@@ -210,8 +286,7 @@ def commentaires(data):
 
 def panel_content(categorie, qlist):
     """
-    Permet la création d'un panneau pour les onglets correspondant aux
-    différentes catégories'
+    Renvoie un panneau pour la catégories.
 
     Parameters
     ----------
@@ -223,20 +298,26 @@ def panel_content(categorie, qlist):
     Returns
     -------
     dahs_bootstrap_components.Container
-        Container contenant les emplacements pour les informations de la 
+        Container contenant les emplacements pour les informations de la
         catégorie et celles de différentes questions qui la composent.
 
     """
-    content = [html.H3(['Note moyenne pour la catégorie : ',
-                        html.Span(id='note_'+categorie)]),
-               dcc.Graph(id='histogramme_'+categorie)
-               ]
+    content = [html.Div([
+        html.H2(label[categorie], className="display-3"),
+        html.Hr(className="my-2"),
+        html.Span(id='note_'+categorie),
+        html.Hr(className="my-2"),
+        dcc.Graph(id='histogramme_'+categorie)
+        ], className="h-100 p-5 text-white bg-primary rounded-3")]
 
     for i in qlist:
-        content.extend([
-            html.H2([questions[i]['question']]),
-            html.H3(['Note moyenne pour la question : ',
-                     html.Span(id='moyenne_'+i)]),
+        content.append(html.Hr(className="my-2"))
+        content.append(html.Div([
+            html.H2([questions[i]['question']], className="display-3"),
+            html.Hr(className="my-2"),
+            html.Span(id='moyenne_'+i),
+            html.Hr(className="my-2"),
             dcc.Graph(id='histogramme_'+i)
-            ])
+            ], className="h-100 p-5 bg-light text-dark border rounded-3"))
+
     return dbc.Container(content)
