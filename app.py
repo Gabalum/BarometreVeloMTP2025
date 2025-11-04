@@ -279,7 +279,15 @@ commentaires_pane = dbc.Container(html.Div([
     dbc.ListGroup(id='commentaires')],
     className="h-100 p-5 text-white bg-primary rounded-3"))
 
-violence_pane = dbc.Container()
+violence_pane = dbc.Container(html.Div([
+    html.H2("Violences motorisées", className="display-3"),
+    html.Hr(className="my-2"),
+    dcc.Graph(id='situations_violence'),
+    html.Hr(className="my-2"),
+    dcc.Graph(id='plaintes'),
+    html.Hr(className="my-2"),
+    dcc.Graph(id='suites_plaintes'),
+    ], className="h-100 p-5 text-white bg-primary rounded-3"))
 
 # Initialize the app
 app = Dash(external_stylesheets=[dbc.themes.DARKLY])
@@ -296,6 +304,10 @@ app.layout = html.Div([
                                 id='open-offcanvas',
                                 n_clicks=0))]),
     html.Div(selection_pane),
+    dcc.Loading(id="loading", 
+                type='default', 
+                children=html.Div(id="loading-output"), 
+                color='magenta'),
     dbc.Tabs([
         dbc.Tab(label="Présentation", children=presentation_pane),
         dbc.Tab(label='Synthèse', children=synthese_pane),
@@ -312,6 +324,7 @@ app.layout = html.Div([
 ])
 
 io = [
+      Output("loading-output","children"),
       Output('commune', 'children'),
       Output('note', 'children'),
       Output('ressenti', 'children'),
@@ -351,7 +364,10 @@ io.extend([
     Output('stationnement_cyclistes', 'figure'),
     Output('vol_cyclistes', 'figure'),
     Output('mobilite_non_cyclistes', 'figure'),
-    Output('velo_non_cyclistes', 'figure')
+    Output('velo_non_cyclistes', 'figure'),
+    Output('situations_violence', 'figure'),
+    Output('plaintes', 'figure'),
+    Output('suites_plaintes', 'figure')
     ])
 
 io.append(Output('commentaires', 'children'))
@@ -414,7 +430,8 @@ def update(commune, genre, expertise, pratique, age):
     nb_val_rep = len(data)
     cyclist_df = data.loc[df['q6'] != 5]
     nb_rep_cyclist = len(cyclist_df)
-    return_value = [commune,
+    return_value = [None,
+                    commune,
                     progress(note(data, 'score')),
                     progress(note(data, 'ressenti')),
                     progress(note(data, 'securite')),
@@ -450,6 +467,9 @@ def update(commune, genre, expertise, pratique, age):
     return_value.append(question_histogramme(data, 'q42'))
     return_value.append(question_multiple_histogramme(data, 'q49'))
     return_value.append(question_histogramme(data, 'q50'))
+    return_value.append(question_multiple_histogramme(data, 'q38')),
+    return_value.append(question_histogramme(data, 'q39')),
+    return_value.append(question_histogramme(data, 'q62')),
 
     return_value.append(commentaires(data))
 
