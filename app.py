@@ -15,7 +15,7 @@ from graph_functions import progress, evolution
 import dash_bootstrap_components as dbc
 
 # Chargement des données et conversion des notes en entier
-df = pd.read_csv('./data/EPCI_2025/reponses-epci-200023414.csv')
+df = pd.read_csv('./data/EPCI_2025/reponses-epci-243400017.csv')
 for q in ['q2', 'q3', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13',
           'q14', 'q15', 'q16', 'q17', 'q18', 'q19', 'q20', 'q21', 'q22', 'q23',
           'q24', 'q25', 'q26', 'q27', 'q28', 'q29', 'q30', 'q31', 'q32', 'q33',
@@ -38,7 +38,7 @@ df['NOTE'] = sum([df[c.upper()] for c in categories]) / len(categories)
 
 # Extraction des données de Seine-Maritime et intégration des noms de communes
 communes = pd.read_csv('./data/EPCI_2025/communes_2024.csv')
-communes = communes.loc[communes['DEP'] == '76']
+communes = communes.loc[communes['DEP'] == '34']
 communes = communes[['COM', 'LIBELLE']]
 communes['COM'] = communes['COM'].astype(int)
 communes = communes.rename(columns={'COM': 'insee', 'LIBELLE': 'commune'})
@@ -109,7 +109,7 @@ selection_pane = dbc.Offcanvas([
 # Panneau de présentation
 presentation_pane = html.Div(dbc.Container([
     html.H1(["Résultats du Baromètre Vélo 2025 ",
-             "sur la Métropole Rouen Normandie"]),
+             "sur Montpellier Métropole Méditerranéee"]),
     html.H2('Présentation'),
     html.P(["Le ",
             html.A("baromètre vélo", href="https://www.barometre-velo.fr/"),
@@ -124,9 +124,9 @@ presentation_pane = html.Div(dbc.Container([
             ]),
     html.P(["Ce site a pour vocation d'offrir des outils permettant une ",
             "analyse fine des résultats du baromètre vélo ",
-            "sur le territoire de la ",
-            html.A("Métropole Rouen Normandie",
-                   href="https://www.metropole-rouen-normandie.fr/"),
+            "sur le territoire de ",
+            html.A("Montpellier 3M",
+                   href="https://www.montpellier.fr/"),
             ". Outre les résultats déjà disponibles sur le site du ",
             "baromètre, ce site permet : ",
             html.Ul([
@@ -149,11 +149,12 @@ presentation_pane = html.Div(dbc.Container([
                    href="https://opendata.parlons-velo.fr/"),
             ". Ces données sont anonymes et conformes au RGPD."
             ]),
-    html.P(["Ce site est développé par Pierre Héroux pour le compte ",
+    html.P(["Ce site, développé par Pierre Héroux pour le compte ",
             "de l'association ",
             html.A("SABINE", href="sabinerouenvelo.org"),
             " qui promeut l'usage du vélo comme moyen de déplacement sur le ",
-            "territoire de la Métropole Rouen Normandie. ",
+            "territoire de la Métropole Rouen Normandie. A été adapté par Aurélien Bonnal pour le compte de l'association ",
+            html.A("Vélocité Grand Montpellier", href="velocite-montpellier.fr"),
             "Son code source est disponible sur ",
             html.A("https://github.com/PierreHeroux/BarometreVeloMRN2025",
                    href="https://github.com/PierreHeroux/BarometreVeloMRN2025"),
@@ -299,7 +300,7 @@ violence_pane = dbc.Container(html.Div([
 # Initialize the app
 app = Dash(external_stylesheets=[dbc.themes.DARKLY])
 server = app.server
-app.title = 'Baromètre Vélo 2025 Métropole Rouen Normandie'
+app.title = 'Baromètre Vélo 2025 Montpellier Méditerranée Métropole'
 
 # App layout
 options = [{'label': v, 'value': v} for v in villes]
